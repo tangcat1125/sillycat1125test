@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>逐頁輸入教案生成</title>
+    <style>
+        body {
+            font-family: "標楷體", sans-serif;
+            font-size: 12px;
+            margin: 20px;
+        }
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+        .button {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>逐頁輸入教案生成</h1>
+    <div id="page1" class="page active">
+        <h2>第1步：教科書版本</h2>
+        <label for="textbook">教科書版本：</label>
+        <input type="text" id="textbook" required>
+        <div class="button">
+            <button onclick="nextPage(1)">下一步</button>
+        </div>
+    </div>
+    <div id="page2" class="page">
+        <h2>第2步：年級</h2>
+        <label for="grade">年級：</label>
+        <input type="text" id="grade" required>
+        <div class="button">
+            <button onclick="prevPage(2)">上一步</button>
+            <button onclick="nextPage(2)">下一步</button>
+        </div>
+    </div>
+    <div id="page3" class="page">
+        <h2>第3步：科目與單元主題</h2>
+        <label for="subject">科目：</label>
+        <input type="text" id="subject" required><br><br>
+        <label for="topic">單元主題：</label>
+        <input type="text" id="topic" required>
+        <div class="button">
+            <button onclick="prevPage(3)">上一步</button>
+            <button onclick="nextPage(3)">下一步</button>
+        </div>
+    </div>
+    <div id="page4" class="page">
+        <h2>第4步：執行節數</h2>
+        <label for="sessions">執行節數：</label>
+        <input type="number" id="sessions" required>
+        <div class="button">
+            <button onclick="prevPage(4)">上一步</button>
+            <button onclick="generatePlan()">生成教案</button>
+        </div>
+    </div>
+    <div id="output"></div>
+
+    <script>
+        function nextPage(current) {
+            document.getElementById(`page${current}`).classList.remove('active');
+            document.getElementById(`page${current + 1}`).classList.add('active');
+        }
+
+        function prevPage(current) {
+            document.getElementById(`page${current}`).classList.remove('active');
+            document.getElementById(`page${current - 1}`).classList.add('active');
+        }
+
+        async function generatePlan() {
+            const textbook = document.getElementById("textbook").value;
+            const grade = document.getElementById("grade").value;
+            const subject = document.getElementById("subject").value;
+            const topic = document.getElementById("topic").value;
+            const sessions = document.getElementById("sessions").value;
+
+            if (!textbook || !grade || !subject || !topic || !sessions) {
+                alert("請完整填寫所有欄位！");
+                return;
+            }
+
+            const prompt = `
+                請根據以下資訊設計一份簡案教案：
+                教科書版本：${textbook}
+                年級：${grade}
+                科目：${subject}
+                單元主題：${topic}
+                執行節數：${sessions}
+                格式包含：教學活動、時間、教學說明、教學準備、附註
+                簡單排版即可。
+            `;
+
+            try {
+                const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer YOUR_API_KEY` // 替換為你的 OpenAI API 金鑰
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-3.5-turbo",
+                        messages: [{ role: "user", content: prompt }]
+                    })
+                });
+
+                const data = await response.json();
+                const result = data.choices[0].message.content;
+
+                document.getElementById("output").innerHTML = `
+                    <h2>生成的教案</h2>
+                    <pre>${result}</pre>
+                    <p>請使用 Ctrl+C 複製教案內容。</p>
+                `;
+            } catch (error) {
+                console.error(error);
+                alert("生成失敗，請重新操作！");
+            }
+        }
+    </script>
+</body>
+</html>
